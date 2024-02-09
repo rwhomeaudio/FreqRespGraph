@@ -1,0 +1,20 @@
+# Manufacture headphone result
+
+
+![AKG](./AKG.JPG) 
+![Audeze](./Audeze.JPG) 
+![Audio-Technica](./Audio-Technica.JPG) 
+![Beats](./Beats.JPG) 
+![Beyerdynamic](./Beyerdynamic.JPG) 
+![Bose](./Bose.JPG) 
+![Bowers & Wilkins](./Bowers & Wilkins.JPG) 
+![Denon](./Denon.JPG) 
+![Focal](./Focal.JPG) 
+![Grado](./Grado.JPG) 
+![HIFIMAN](./HIFIMAN.JPG) 
+![JBL](./JBL.JPG) 
+![Koss](./Koss.JPG) 
+![Sennheiser](./Sennheiser.JPG) 
+![Shure](./Shure.JPG) 
+![Sony](./Sony.JPG) 
+![Stax](./Stax.JPG) 
