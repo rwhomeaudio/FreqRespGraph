@@ -1,4 +1,4 @@
-# Manufacture headphone result
+# Manufacturer headphone results
 
 
 ![AKG](./AKG.JPG) 
@@ -7,7 +7,7 @@
 ![Beats](./Beats.JPG) 
 ![Beyerdynamic](./Beyerdynamic.JPG) 
 ![Bose](./Bose.JPG) 
-![Bowers & Wilkins](./Bowers & Wilkins.JPG) 
+![Bowers & Wilkins](./Bowers%20&%20Wilkins.JPG) 
 ![Denon](./Denon.JPG) 
 ![Focal](./Focal.JPG) 
 ![Grado](./Grado.JPG) 
