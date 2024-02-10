@@ -6,19 +6,14 @@ import math
 import os
 
 from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import LogFormatter
 
-# X-Axis labels
+# X-Axis minor ticks labels
 def myformatter(x, pos):
-    if x == 20:
-        return '20'
-    if x == 100:
-        return '100'
-    if x == 1000:
-        return '1k'
-    if x == 10000:
-        return '10k'
-    if x == 20000:
-        return '20k'
+    if x == args.xmin:
+        return str(int(args.xmin))
+    if x == args.xmax:
+        return str(int(args.xmax))
     return ''
 
 # Draw given CSV file frequency response
@@ -119,9 +114,12 @@ ax.set_xlim(args.xmin,args.xmax)
 ax.set_ylim(args.ymin,args.ymax)
 
 # Set X Axis major and minor ticks
-formatter = FuncFormatter(myformatter)
+formatter = LogFormatter()
 ax.xaxis.set_major_formatter(formatter)
-ax.xaxis.set_minor_formatter(formatter)
+#if args.xmin == 20 and args.xmax == 20000:
+formatter2 = FuncFormatter(myformatter)
+ax.xaxis.set_minor_formatter(formatter2)
+
 
 # Set Axis labels
 ax.set_xlabel('Frequency [Hz]')
