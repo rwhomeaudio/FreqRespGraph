@@ -53,6 +53,6 @@ The follwog examples use the headphome measurment and target curves provided by 
 ![SennheiserHD650](./examples/SennheiserHD650.JPG)
 
 # Tips
-1. Often the lenged on the right side doesn't fit in the plot. You can just disable it using `--nolgend` or adjust the size by using the "right" slider in "Configure subplots" menu.
+1. Often the lenged on the right side doesn't fit in the plot. You can just disable it using `--nolegend` or adjust the size by using the "right" slider in "Configure subplots" menu.
 2. Complex wildcard file patterns could be used. It is implemented using [glob](https://docs.python.org/3/library/glob.html). E.g. soimething like `--files AutoEq\measurements\*\*\*\Sennheiser*.csv` can be used.
   
