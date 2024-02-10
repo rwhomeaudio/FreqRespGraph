@@ -1,6 +1,6 @@
 # FreqRespGraph
 
-FreqRespGraph is a simple tool to plot and compare frequency response measurment data from CSV files. It is written in [Python 3](https://www.python.org/) using [matplotlib](https://matplotlib.org/).
+FreqRespGraph is a simple tool to plot and compare frequency response measurement data from CSV files. It is written in [Python 3](https://www.python.org/) using [matplotlib](https://matplotlib.org/).
 
 # Installation
 1. Download and install Python 3.X on your system: [https://www.python.org/downloads/](https://www.python.org/downloads/)
@@ -39,13 +39,13 @@ options:
   --files [FILES ...]   CSV filenames to be plotted (supports filename wildcards)
   ```
 # Examples
-The follwog examples use the headphome measurment and target curves provided by [AutoEq](https://github.com/jaakkopasanen/AutoEq).
+The following examples use the headphone measurment and target curves provided by [AutoEq](https://github.com/jaakkopasanen/AutoEq).
 
 1. Show all RTings measurements of Sennheiser over ear headphones (already alighned to 1kHz): `python FreqRespGraph\FreqRespGraph.py --files AutoEq\measurements\Rtings\data\over-ear\Sennheiser*.csv`
 ![Sennheiser1](./examples/Sennheiser1.JPG)   
 3. Show all RTings measurements of Sennheiser over ear headphones aligned to 440Hz): `python FreqRespGraph\FreqRespGraph.py --alignmin 440 --files AutoEq\measurements\Rtings\data\over-ear\Sennheiser*.csv`
 ![Sennheiser2](./examples/Sennheiser2.JPG) 
-5. Since aligning to a single frequency is misleading align to frequency range instead and aditional plot harman target curve: `python FreqRespGraph\FreqRespGraph.py --alignmin 200 --alignmax 2000 --title "All Rtings Sennheiser measurements" --refcurve "AutoEq\targets\Harman over-ear 2018.csv" --title "All Rtings Sennheiser measurements" --files AutoEq\measurements\Rtings\data\over-ear\Sennheiser*.csv`
+5. Since aligning to a single frequency is misleading align to frequency range instead and additionally plot harman target curve: `python FreqRespGraph\FreqRespGraph.py --alignmin 200 --alignmax 2000 --title "All Rtings Sennheiser measurements" --refcurve "AutoEq\targets\Harman over-ear 2018.csv" --title "All Rtings Sennheiser measurements" --files AutoEq\measurements\Rtings\data\over-ear\Sennheiser*.csv`
 ![Sennheiser3](./examples/Sennheiser3.JPG) 
 7. All Rtings measurments without legend: `python FreqRespGraph\FreqRespGraph.py --alignmin 200 --alignmax 2000 --title "All Rtings Sennheiser measurements" --refcurve "AutoEq\targets\Harman over-ear 2018.csv" --nolegend --title "All Rtings measurements" --files AutoEq\measurements\Rtings\data\over-ear\*.csv`
 ![AllRtings](./examples/AllRtings.JPG) 
@@ -53,6 +53,6 @@ The follwog examples use the headphome measurment and target curves provided by 
 ![SennheiserHD650](./examples/SennheiserHD650.JPG)
 
 # Tips
-1. Often the lenged on the right side doesn't fit in the plot. You can just disable it using `--nolegend` or adjust the size by using the "right" slider in "Configure subplots" menu.
-2. Complex wildcard file patterns could be used. It is implemented using [glob](https://docs.python.org/3/library/glob.html). E.g. soimething like `--files AutoEq\measurements\*\*\*\Sennheiser*.csv` can be used.
+1. Often the legend on the right side doesn't fit in the plot. You can just disable it using `--nolegend` or adjust the size by using the "right" slider in "Configure subplots" menu.
+2. Complex wildcard file patterns could be used. It is implemented using [glob](https://docs.python.org/3/library/glob.html). E.g. something like `--files AutoEq\measurements\*\*\*\Sennheiser*.csv` can be used.
   
