@@ -53,8 +53,9 @@ The following examples use the headphone measurment and target curves provided b
 ![SennheiserHD650](./examples/SennheiserHD650.JPG)
 
 # Tips
-1. Often the legend on the right side doesn't fit in the plot. You can just disable it using `--nolegend` or adjust the size by using the "right" slider in "Configure subplots" menu.
-2. Complex wildcard file patterns could be used. It is implemented using [glob](https://docs.python.org/3/library/glob.html). E.g. something like `--files AutoEq\measurements\*\*\*\Sennheiser*.csv` can be used.
+1. Often the legend on the right side doesn't fit in the plot. You can just disable it using `--nolegend` or adjust the size by using the "right" slider in "Configure subplots" menu. You can click on the legend and drag it to some other location.
+2. You can click on the line symbol of a legend entry. This first click will highlight the corresponding curve, the second will hide the curve and the third click switches it back to the default.
+3. Complex wildcard file patterns could be used. It is implemented using [glob](https://docs.python.org/3/library/glob.html). E.g. something like `--files AutoEq\measurements\*\*\*\Sennheiser*.csv` can be used.
   
 # References
 1. Jaakko Pasanen, AutoEq, https://github.com/jaakkopasanen/AutoEq, https://autoeq.app/

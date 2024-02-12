@@ -16,6 +16,36 @@ def myformatter(x, pos):
         return str(int(args.xmax))
     return ''
 
+
+# On legend pick event, highlight curve (first click), hide curve (second click) or switch back to default (third click)
+def on_pick(event):
+    legend_line = event.artist
+
+    # Do nothing if the source of the event is not a legend line.
+    if legend_line not in map_legend_to_ax:
+        return
+
+    ax_line = map_legend_to_ax[legend_line]
+    lw = ax_line.get_linewidth()
+    visible = ax_line.get_visible()
+    if visible and lw < 2.0:
+        # Higlight
+        ax_line.set_linewidth(4.0)
+        legend_line.set_alpha(1.0)
+        ax_line.set_zorder(10)
+    if visible and lw > 2.0:
+        # Hide
+        ax_line.set_linewidth(1.5)
+        ax_line.set_visible(False)
+        legend_line.set_alpha(0.2)
+        ax_line.set_zorder(2)
+    if not visible:
+        # Back to default
+        ax_line.set_visible(True)
+        ax_line.set_zorder(2)
+        legend_line.set_alpha(1.0)
+    fig.canvas.draw()
+
 # Draw given CSV file frequency response
 def drawCurve(filename, ax, alignmin, alignmax, isref):
     #  X/Y data to be drawn 
@@ -63,10 +93,10 @@ def drawCurve(filename, ax, alignmin, alignmax, isref):
 
     # Draw graph
     if isref:
-        ax.plot(x, y, '--k', label=os.path.basename(filename))
+        (line, ) = ax.plot(x, y, '--k', lw=1.5, label=os.path.basename(filename))
     else:
-        ax.plot(x, y, '-', label=os.path.basename(filename))
-
+        (line, ) = ax.plot(x, y, '-', lw=1.5, label=os.path.basename(filename))
+    lines.append(line)
 # Parse command line
 parser = argparse.ArgumentParser(prog='FreqRespGraph',
                                  description='''
@@ -93,6 +123,7 @@ print (args )
 fig, ax = plt.subplots(figsize = (9, 6))
 
 # Draw curve for each given CSV
+lines = []
 for filepattern in args.files:
     files = glob.glob(filepattern)
     for file in files:
@@ -104,7 +135,14 @@ if args.refcurve != '':
 
 # Draw Legend if not disabled
 if not args.nolegend:
-    ax.legend(loc='center left', bbox_to_anchor=(1.01, 0.5), fontsize='xx-small')
+    leg=ax.legend(loc='center left', bbox_to_anchor=(1.01, 0.5), fontsize='xx-small', draggable=True)
+    map_legend_to_ax = {}  # Will map legend lines to original lines.
+    pickradius = 5  # Points (Pt). How close the click needs to be to trigger an event.
+    for legend_line, ax_line in zip(leg.get_lines(), lines):
+        legend_line.set_picker(pickradius)  # Enable picking on the legend line.
+        map_legend_to_ax[legend_line] = ax_line
+    fig.canvas.mpl_connect('pick_event', on_pick)
+
 
 # Set logarithmic scale on the x axis
 ax.set_xscale("log");
