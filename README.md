@@ -19,7 +19,7 @@ usage: FreqRespGraph [-h] [--ymin [YMIN]] [--ymax [YMAX]] [--xmin [XMIN]] [--xma
 
 FreqRespGraph can plot single or multiple frequency response graphs given as CSV data files in a single graph. X and Y Axis
 limit can be configured. Data can be aligned to 0dB at a given frequency or frequency range. In addition a reference curve
-can be specified. Optionally all curves can be compensated according to the specified refernece curve. The CSV data files needs to contain 2 rows with frequency and SPL.
+can be specified. Optionally all curves can be compensated according to the specified reference curve. The CSV data files needs to contain 2 rows with frequency and SPL.
 
 options:
   -h, --help            show this help message and exit
