@@ -4,6 +4,7 @@ import argparse
 import glob
 import math
 import os
+import numpy as np
 
 from matplotlib.ticker import FuncFormatter
 from matplotlib.ticker import LogFormatter
@@ -47,7 +48,7 @@ def on_pick(event):
     fig.canvas.draw()
 
 # Draw given CSV file frequency response
-def drawCurve(filename, ax, alignmin, alignmax, isref):
+def drawCurve(filename, ax, alignmin, alignmax, isref, xref = None, yref = None):
     #  X/Y data to be drawn 
     x = []
     y = []
@@ -60,10 +61,33 @@ def drawCurve(filename, ax, alignmin, alignmax, isref):
     # Read CSV file
     csvfile = open(filename, newline='')
     c = csv.reader(csvfile)
+    if xref != None:
+        xreflen = len(xref)
+    nrows = 0
     for row in c:
         try:
             xf = float(row[0])
             yf = float(row[1])
+            if xref != None:
+                # Compensate values according to reference curve
+                if (nrows < xreflen) and (xf == xref[nrows]):
+                    # Simple fast match found => use it to save time
+                    yf = yf - yref[nrows]
+                else:
+                    compindex = np.searchsorted(xref,xf)
+                    if compindex >= xreflen:
+                        # Out of xrange of reference curve (value too big) => skip data point
+                        continue
+                    if xref[compindex] == xf:
+                        # Exact match in reference curve found => use its value
+                        yf = yf - yref[compindex]
+                    else:
+                        if compindex > 0:
+                            # Use linear interpolation of reference curve 
+                            yf = yf - (((yref[compindex] - yref[compindex-1])/(xref[compindex] - xref[compindex-1]) * (xf-xref[compindex-1])) + yref[compindex-1])
+                        else:
+                            # Out of xrange of reference curve (value too small) => skip data point
+                            continue
             if alignmin > 0:
                 if alignmax < 0:
                     # Align to frequency point
@@ -78,6 +102,7 @@ def drawCurve(filename, ax, alignmin, alignmax, isref):
                         alignCount = alignCount + 1
             x.append(xf)
             y.append(yf)
+            nrows = nrows + 1
         except ValueError as ve:
             print( 'Ignoring: ', row, 'in ' , filename)
     csvfile.close()
@@ -114,6 +139,7 @@ parser.add_argument('--alignmax', nargs='?', type=float, default='-1', help='Ali
 parser.add_argument('--hidealignment', action='store_true', help='Do not show aligment arguments in Y-Axis label, default off')
 parser.add_argument('--refcurve', nargs='?', default='', help='Plot given CSV file as dotted reference curve, default off')
 parser.add_argument('--nolegend', action='store_true', help='Do not show curves legend, default off')
+parser.add_argument('--compensate', action='store_true', help='Compensate according to given reference curve, default off')
 parser.add_argument('--title', nargs='?', default='', help='Set graph title, default off')
 parser.add_argument('--files', nargs='*',  required=True, help='CSV filenames to be plotted (supports filename wildcards)')
 args = parser.parse_args()
@@ -122,16 +148,34 @@ print (args )
 # Initialize layout
 fig, ax = plt.subplots(figsize = (9, 6))
 
+xref = None
+yref = None
+if args.refcurve != '' and args.compensate:
+    #  Read reference curve data for compensation
+    xref = []
+    yref = []
+    csvfile = open(args.refcurve, newline='')
+    c = csv.reader(csvfile)
+    for row in c:
+        try:
+            xf = float(row[0])
+            yf = float(row[1])
+            xref.append(xf)
+            yref.append(yf)
+        except ValueError as ve:
+            print( 'Ignoring: ', row, 'in ' , args.refcurve)
+    csvfile.close()
+
 # Draw curve for each given CSV
 lines = []
 for filepattern in args.files:
     files = glob.glob(filepattern)
     for file in files:
-        drawCurve(file, ax, args.alignmin, args.alignmax, False)
+        drawCurve(file, ax, args.alignmin, args.alignmax, False, xref, yref)
 
 # Draw refernace curve if given
 if args.refcurve != '':
-    drawCurve(args.refcurve, ax, args.alignmin, args.alignmax, True)
+    drawCurve(args.refcurve, ax, args.alignmin, args.alignmax, True, xref, yref)
 
 # Draw Legend if not disabled
 if not args.nolegend:
@@ -161,7 +205,10 @@ ax.xaxis.set_minor_formatter(formatter2)
 
 # Set Axis labels
 ax.set_xlabel('Frequency [Hz]')
-ylabel = 'SPL [dB]'
+if args.refcurve != '' and args.compensate:
+    ylabel = 'Compensated SPL [dB]'
+else:
+    ylabel = 'SPL [dB]'
 if not args.hidealignment and args.alignmin > 0:
     if args.alignmax > 0:
         ylabel = ylabel + '\n(Aligned to 0db at ' + str(int(args.alignmin)) + '...' + str(int(args.alignmax)) + ' Hz)'
