@@ -131,6 +131,7 @@ def drawCurve(filename, ax, alignmin, alignmax, isref, xref = None, yref = None,
     # Draw graph
     if isref:
         (line, ) = ax.plot(x, y, '--k', lw=1.5, label=os.path.basename(filename))
+        lines.append(line)
     else:
         (line, ) = ax.plot(x, y, '-', lw=1.5, label=os.path.basename(filename))
         lines.append(line)
