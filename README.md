@@ -66,7 +66,7 @@ The following examples use the headphone measurment and target curves provided b
 2. You can click on the line symbol of a legend entry. This first click will highlight the corresponding curve, the second will hide the curve and the third click switches it back to the default.
 3. Complex wildcard file patterns could be used. It is implemented using [glob](https://docs.python.org/3/library/glob.html). E.g. something like `--files AutoEq\measurements\*\*\*\Sennheiser*.csv` can be used.
 4. Compensation according to reference curve is faster if reference curve and data curve contain the exact same frequencies. Otherwise interpolation of the reference curve data is used to compensate the data curves. In this case data which is not within the frequency range of the reference curve will not be displayed.
-5. PEQ shelf filter ignore the Q setting, shelf filters used a fixed Q=SQRT(2). 
+5. PEQ shelf filter ignore the Q setting, shelf filters use a fixed Q=1/SQRT(2). 
   
 # References
 1. Jaakko Pasanen, AutoEq, https://github.com/jaakkopasanen/AutoEq, https://autoeq.app/
