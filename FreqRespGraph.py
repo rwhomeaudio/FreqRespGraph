@@ -5,6 +5,7 @@ import glob
 import math
 import os
 import numpy as np
+import bq.biquad as bq
 
 from matplotlib.ticker import FuncFormatter
 from matplotlib.ticker import LogFormatter
@@ -48,7 +49,7 @@ def on_pick(event):
     fig.canvas.draw()
 
 # Draw given CSV file frequency response
-def drawCurve(filename, ax, alignmin, alignmax, isref, xref = None, yref = None):
+def drawCurve(filename, ax, alignmin, alignmax, isref, xref = None, yref = None, biquads = None, hidepeq = True):
     #  X/Y data to be drawn 
     x = []
     y = []
@@ -116,18 +117,40 @@ def drawCurve(filename, ax, alignmin, alignmax, isref, xref = None, yref = None)
         for i in range(length):
             y[i] = y[i] - alignOffset
 
+    # Show PEQ
+    if not hidepeq:
+        ypeq = []
+        length = len(y)
+        for i in range(length):
+            ypeq.append(0)
+            for b in biquads:
+                ypeq[i] = ypeq[i] + b.log_result(x[i])
+        (line, ) = ax.plot(x, ypeq, '-', lw=1.5, label='Equalizer')
+        lines.append(line)
+
     # Draw graph
     if isref:
         (line, ) = ax.plot(x, y, '--k', lw=1.5, label=os.path.basename(filename))
     else:
         (line, ) = ax.plot(x, y, '-', lw=1.5, label=os.path.basename(filename))
-    lines.append(line)
+        lines.append(line)
+        if biquads != None:
+            # Apply biquad PEQ
+            for i in range(length):
+                for b in biquads:
+                    y[i] = y[i] + b.log_result(x[i])
+            (line, ) = ax.plot(x, y, '-', lw=1.5, label=os.path.basename(filename)+' (Equalized)')
+            lines.append(line)
+
+
 # Parse command line
 parser = argparse.ArgumentParser(prog='FreqRespGraph',
                                  description='''
 FreqRespGraph can plot single or multiple frequency response graphs given as CSV data files in a single graph.
 X and Y Axis limit can be configured. Data can be aligned to 0dB at a given frequency or frequency range. In
-addition a reference curve can be specified. The CSV data files needs to contain 2 rows with frequeny and SPL.
+addition a reference curve can be specified. Filter settings for a parametric equalizer can be specified to
+additionally plot the equalizer response and curve(s) equalized by it. The CSV data files needs to contain 2
+rows with frequency and SPL.
 '''
 )
 parser.add_argument('--ymin', nargs='?', type=float, default='-30', help='Y-Axis minumum, default -30db')
@@ -141,8 +164,29 @@ parser.add_argument('--refcurve', nargs='?', default='', help='Plot given CSV fi
 parser.add_argument('--nolegend', action='store_true', help='Do not show curves legend, default off')
 parser.add_argument('--compensate', action='store_true', help='Compensate according to given reference curve, default off')
 parser.add_argument('--title', nargs='?', default='', help='Set graph title, default off')
+parser.add_argument('--peq', nargs='*', default='', help='Apply given PEQ settings, format for each filter is PEAK|LOWSHELF|HIGHSHELF|LOWPASS|HIGHPASS|BANDPASS|NOTCH,<Freq>,<Q>,<Gain>, default none')
+parser.add_argument('--fpeq', nargs='?', type=float, default='48000', help='Sampling frequency used to simulate PEQ, default 48000')
+parser.add_argument('--hidepeq', action='store_true', help='Hide equalizer curve')
 parser.add_argument('--files', nargs='*',  required=True, help='CSV filenames to be plotted (supports filename wildcards)')
 args = parser.parse_args()
+
+biquads = []
+for p in args.peq:
+    biquad_args = p.split(',')
+    if len(biquad_args) == 4:
+        try:
+            biquads.append(bq.Biquad(bq.Biquad.__dict__[biquad_args[0]], float(biquad_args[1]), args.fpeq, float(biquad_args[2]), float(biquad_args[3])))
+        except (ValueError, KeyError) as ve:
+            print( 'Invalid PEQ: ' , p)
+            print( 'Expected format: PEAK|LOWSHELF|HIGHSHELF|LOWPASS|HIGHPASS|BANDPASS|NOTCH,<Freq>,<Q>,<Gain>')
+            exit(1)
+    else:
+        print( 'Invalid PEQ: ' , p)
+        print( 'Expected format: PEAK|LOWSHELF|HIGHSHELF|LOWPASS|HIGHPASS|BANDPASS|NOTCH,<Freq>,<Q>,<Gain>')
+        exit(1)
+if len(biquads) == 0:
+    biquads = None
+    args.hidepeq = True
 
 print (args )
 # Initialize layout
@@ -171,7 +215,8 @@ lines = []
 for filepattern in args.files:
     files = glob.glob(filepattern)
     for file in files:
-        drawCurve(file, ax, args.alignmin, args.alignmax, False, xref, yref)
+        drawCurve(file, ax, args.alignmin, args.alignmax, False, xref, yref, biquads, args.hidepeq)
+        args.hidepeq = True
 
 # Draw refernace curve if given
 if args.refcurve != '':
