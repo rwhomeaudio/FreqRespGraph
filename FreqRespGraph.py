@@ -151,9 +151,9 @@ def drawCurve(filename, ax, alignmin, alignmax, isref, csv_delimiter=',', xref =
 
         if(window_size > 1):
             # Smooth curve using Savitzky-Golay filter of calculated window size, run it from bottom to top and vice versa
-            y_smoothed = savgol_filter(y_smoothed, window_size, 2)
+            y_smoothed = savgol_filter(y_smoothed, window_size, 1, mode='nearest')
             y_smoothed = np.flip(y_smoothed)
-            y_smoothed = savgol_filter(y_smoothed, window_size, 2)
+            y_smoothed = savgol_filter(y_smoothed, window_size, 1, mode='nearest')
             y_smoothed = np.flip(y_smoothed)
         (line, ) = ax.plot(x_smoothed, y_smoothed, '-', lw=1.5, label=os.path.basename(filename)+' ('+ smoothstr + ' oct smoothed)')
         lines.append(line)

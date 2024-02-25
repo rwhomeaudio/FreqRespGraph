@@ -66,7 +66,7 @@ The following examples use the headphone measurment and target curves provided b
 ![SennheiserHD650_2](./examples/SennheiserHD650_2.JPG)
 13. Grado GS1000 equalized by PEQ filters: `python FreqRespGraph\FreqRespGraph.py --alignmin 200 --alignmax 2000 --refcurve "AutoEq\targets\Harman over-ear 2018.csv" --title "Equalizing Grado GS1000" --files "AutoEq\measurements\Innerfidelity\data\over-ear\Grado GS1000.csv" --peq LOWSHELF,40,1,6 PEAK,83,1.1,-3 PEAK,4380,2.0,-3.4 PEAK,6400,2.0,-5.3 PEAK,11200,2.0,-8`
 ![GradoGS1000Eq](./examples/GradoGS1000Eq.JPG)
-14. Loudspeaker frequency response exported by REW with smoothed curve: `python FreqRespGraph\FreqRespGraph.py --csvdelimiter " " --ymax=90 --smooth 2/1 --title "Smoothed REW measurement" --files REW_raw.txt`
+14. Loudspeaker frequency response exported by REW with smoothed curve: `python FreqRespGraph\FreqRespGraph.py --csvdelimiter " " --ymin=0 --ymax=90 --smooth 1/1 --title "Smoothed REW measurement" --files REW_raw.txt`
 ![REW_smoothing](./examples/REW_smoothing.JPG)
 
 # Tips
@@ -75,7 +75,7 @@ The following examples use the headphone measurment and target curves provided b
 3. Complex wildcard file patterns could be used. It is implemented using [glob](https://docs.python.org/3/library/glob.html). E.g. something like `--files AutoEq\measurements\*\*\*\Sennheiser*.csv` can be used.
 4. Compensation according to reference curve is faster if reference curve and data curve contain the exact same frequencies. Otherwise interpolation of the reference curve data is used to compensate the data curves. In this case data which is not within the frequency range of the reference curve will not be displayed.
 5. PEQ shelf filter ignore the Q setting, shelf filters use a fixed Q=1/SQRT(2).
-6. Smoothing uses a Savitzky-Golay filter of given octave fraction length. The algorithm is very different to e.g. the one used by [REW](https://www.roomeqwizard.com/help/help_en-GB/html/graph.html#top). You need to specify about twice the width the get similar results as when using REW.
+6. Smoothing uses a Savitzky-Golay filter of given octave fraction length with 1th order polynomial. The algorithm is very different to e.g. the one used by [REW](https://www.roomeqwizard.com/help/help_en-GB/html/graph.html#top). Results are very similar but not identical to REW.
   
 # References
 1. Jaakko Pasanen, AutoEq, https://github.com/jaakkopasanen/AutoEq, https://autoeq.app/
