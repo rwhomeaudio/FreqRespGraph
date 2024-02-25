@@ -6,6 +6,8 @@ import math
 import os
 import numpy as np
 import bq.biquad as bq
+from scipy.signal import savgol_filter
+from scipy import interpolate
 
 from matplotlib.ticker import FuncFormatter
 from matplotlib.ticker import LogFormatter
@@ -49,7 +51,7 @@ def on_pick(event):
     fig.canvas.draw()
 
 # Draw given CSV file frequency response
-def drawCurve(filename, ax, alignmin, alignmax, isref, xref = None, yref = None, biquads = None, hidepeq = True):
+def drawCurve(filename, ax, alignmin, alignmax, isref, csv_delimiter=',', xref = None, yref = None, biquads = None, hidepeq = True, smooth = -1, smoothstr = '', smootheonly = False):
     #  X/Y data to be drawn 
     x = []
     y = []
@@ -61,7 +63,7 @@ def drawCurve(filename, ax, alignmin, alignmax, isref, xref = None, yref = None,
 
     # Read CSV file
     csvfile = open(filename, newline='')
-    c = csv.reader(csvfile)
+    c = csv.reader(csvfile, delimiter=csv_delimiter)
     if xref != None:
         xreflen = len(xref)
     nrows = 0
@@ -117,6 +119,53 @@ def drawCurve(filename, ax, alignmin, alignmax, isref, xref = None, yref = None,
         for i in range(length):
             y[i] = y[i] - alignOffset
 
+    # Smooth data
+    if smooth > 0 and not isref :
+        freq_steps = []
+        for i in range(1, len(x)):
+            freq_steps.append(x[i] / x[i - 1])
+        freq_step_size = sum(freq_steps) / len(freq_steps)
+        window_size = round(np.log(2 ** (smooth)) / np.log(freq_step_size))
+
+        window_size_octave = round(np.log(2 ** 1.0) / np.log(freq_step_size))
+        # Highest octave obove initial frequency in data set
+        check_octave = math.floor(len(x)/window_size_octave)
+        # Check in frequency matches with expected logarithmic scaling
+        check_error = x[check_octave * window_size_octave] / (2 **check_octave * x[0])
+        if check_error > 1.2 or check_error < 0.8:
+            # Data not in logrithmic frequency scale => create new data set in logarithmic scale with similar length to apply smoothing
+            f = interpolate.interp1d(x, y)
+            freq = x[0]
+            freq_step_size = np.power(x[len(x)-1]/x[0],1/len(x))
+            x_smoothed = []
+            y_smoothed = []
+            while freq <= x[len(x)-1]:
+                x_smoothed.append(freq)
+                y_smoothed.append(f(freq))
+                freq *= freq_step_size
+            window_size = round(np.log(2 ** (smooth)) / np.log(freq_step_size))
+        else:
+            # Data already have logarithmic frequency scale
+            x_smoothed = x
+            y_smoothed = y
+
+        if(window_size > 1):
+            # Smooth curve using Savitzky-Golay filter of calculated window size, run it from bottom to top and vice versa
+            y_smoothed = savgol_filter(y_smoothed, window_size, 2)
+            y_smoothed = np.flip(y_smoothed)
+            y_smoothed = savgol_filter(y_smoothed, window_size, 2)
+            y_smoothed = np.flip(y_smoothed)
+        (line, ) = ax.plot(x_smoothed, y_smoothed, '-', lw=1.5, label=os.path.basename(filename)+' ('+ smoothstr + ' oct smoothed)')
+        lines.append(line)
+        if biquads != None:
+            # Apply biquad PEQ  to smoothed curve
+            length = len(y_smoothed)
+            for i in range(length):
+                for b in biquads:
+                    y_smoothed[i] = y_smoothed[i] + b.log_result(x_smoothed[i])
+            (line, ) = ax.plot(x_smoothed, y_smoothed, '-', lw=1.5, label=os.path.basename(filename)+' (Equalized, ' + smoothstr + ' oct smoothed)')
+            lines.append(line)
+
     # Show PEQ
     if not hidepeq:
         ypeq = []
@@ -128,6 +177,10 @@ def drawCurve(filename, ax, alignmin, alignmax, isref, xref = None, yref = None,
         (line, ) = ax.plot(x, ypeq, '-', lw=1.5, label='Equalizer')
         lines.append(line)
 
+    if smooth > 0 and smootheonly:
+        # Don't show raw curve(s)
+        return
+
     # Draw graph
     if isref:
         (line, ) = ax.plot(x, y, '--k', lw=1.5, label=os.path.basename(filename))
@@ -137,6 +190,7 @@ def drawCurve(filename, ax, alignmin, alignmax, isref, xref = None, yref = None,
         lines.append(line)
         if biquads != None:
             # Apply biquad PEQ
+            length = len(y)
             for i in range(length):
                 for b in biquads:
                     y[i] = y[i] + b.log_result(x[i])
@@ -150,8 +204,9 @@ parser = argparse.ArgumentParser(prog='FreqRespGraph',
 FreqRespGraph can plot single or multiple frequency response graphs given as CSV data files in a single graph.
 X and Y Axis limit can be configured. Data can be aligned to 0dB at a given frequency or frequency range. In
 addition a reference curve can be specified. Filter settings for a parametric equalizer can be specified to
-additionally plot the equalizer response and curve(s) equalized by it. The CSV data files needs to contain 2
-rows with frequency and SPL.
+additionally plot the equalizer response and curve(s) equalized by it. Curves can be smoothed by a given
+fraction of an octave using a Savitzky-Golay filter with second order polynom. The CSV data files needs to
+contain 2 rows with frequency and SPL.
 '''
 )
 parser.add_argument('--ymin', nargs='?', type=float, default='-30', help='Y-Axis minumum, default -30db')
@@ -168,9 +223,19 @@ parser.add_argument('--title', nargs='?', default='', help='Set graph title, def
 parser.add_argument('--peq', nargs='*', default='', help='Apply given PEQ settings, format for each filter is PEAK|LOWSHELF|HIGHSHELF|LOWPASS|HIGHPASS|BANDPASS|NOTCH,<Freq>,<Q>,<Gain>, default none')
 parser.add_argument('--fpeq', nargs='?', type=float, default='48000', help='Sampling frequency used to simulate PEQ, default 48000')
 parser.add_argument('--hidepeq', action='store_true', help='Hide equalizer curve')
+parser.add_argument('--smooth', nargs='?', default='-1', help='Smooth curves according to given fraction of an octave, e.g. 1/12, 0.5 or 1, default off')
+parser.add_argument('--smoothonly', action='store_true', help='Only show smoothed curves')
+parser.add_argument('--csvdelimiter', nargs='?', default=',', help='Delimiter character used in CSV files, default ","')
 parser.add_argument('--files', nargs='*',  required=True, help='CSV filenames to be plotted (supports filename wildcards)')
 args = parser.parse_args()
 
+try:
+    smooth = float(eval(args.smooth))
+except:
+    print( 'Invalid smooth value: ' , args.smooth)
+    print( 'Expected numerical expression, e.g 1, 0.33 or 1/12')
+    exit(1)
+    
 biquads = []
 for p in args.peq:
     biquad_args = p.split(',')
@@ -216,12 +281,12 @@ lines = []
 for filepattern in args.files:
     files = glob.glob(filepattern)
     for file in files:
-        drawCurve(file, ax, args.alignmin, args.alignmax, False, xref, yref, biquads, args.hidepeq)
+        drawCurve(file, ax, args.alignmin, args.alignmax, False,  args.csvdelimiter, xref, yref, biquads, args.hidepeq, smooth, args.smooth, args.smoothonly)
         args.hidepeq = True
 
-# Draw refernace curve if given
+# Draw referance curve if given
 if args.refcurve != '':
-    drawCurve(args.refcurve, ax, args.alignmin, args.alignmax, True, xref, yref)
+    drawCurve(args.refcurve, ax, args.alignmin, args.alignmax, True,  args.csvdelimiter, xref, yref)
 
 # Draw Legend if not disabled
 if not args.nolegend:
