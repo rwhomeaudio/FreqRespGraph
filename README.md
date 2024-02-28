@@ -22,7 +22,8 @@ FreqRespGraph can plot single or multiple frequency response graphs given as CSV
 limit can be configured. Data can be aligned to 0dB at a given frequency or frequency range. In addition a reference curve
 can be specified. Filter settings for a parametric equalizer can be specified to additionally plot the equalizer response 
 and curve(s) equalized by it. Curves can be smoothed by a given fraction of an octave using a Savitzky-Golay filter with
-second order polynom. The CSV data files needs to contain 2 rows with frequency and SPL.
+first order polynom. The CSV data files needs to contain 2 rows with frequency and SPL. Additionally an impedance curve
+and amplifier inner resistance can be specified to calculate the effect on the frequency response.
 
 options:
   -h, --help            show this help message and exit
@@ -45,6 +46,11 @@ options:
   --hidepeq             Hide equalizer curve
   --smooth [SMOOTH]     Smooth curves according to given fraction of an octave, e.g. 1/12, 0.5 or 1, default off
   --smoothonly          Only show smoothed curves
+  --zeq_file [ZEQ_FILE]
+                        CSV filename with impedance data to calculate EQ due to impedance change, requires zeq_r
+  --zeq_r [ZEQ_R]       Inner resistance of amplifier
+  --zeq_csvdelimiter [ZEQ_CSVDELIMITER]
+                        Delimiter character used in impedance data CSV file, default ","
   --csvdelimiter [CSVDELIMITER]
                         Delimiter character used in CSV files, default ","
   --files [FILES ...]   CSV filenames to be plotted (supports filename wildcards)
@@ -68,6 +74,8 @@ The following examples use the headphone measurment and target curves provided b
 ![GradoGS1000Eq](./examples/GradoGS1000Eq.JPG)
 14. Loudspeaker frequency response exported by REW with smoothed curve: `python FreqRespGraph\FreqRespGraph.py --csvdelimiter " " --ymin=0 --ymax=90 --smooth 1/1 --title "Smoothed REW measurement" --files REW_raw.txt`
 ![REW_smoothing](./examples/REW_smoothing.JPG)
+15. Grado GS1000 on Yamaha R-N803D headphone jack (470 Ohm): `python FreqRespGraph\FreqRespGraph.py --alignmin 200 --alignmax 2000 --refcurve "AutoEq\targets\Harman over-ear 2018.csv" --title "Grado GS1000 with Yamaha R-N803D 470 Ohm" --files "AutoEq\measurements\Innerfidelity\data\over-ear\Grado GS1000.csv" --zeq_file REW_Impedance.txt --zeq_csvdelimiter " " --zeq_r 470`
+![REW_smoothing](./examples/GradoGS1000_470Ohm.JPG)
 
 # Tips
 1. Often the legend on the right side doesn't fit in the plot. You can just disable it using `--nolegend` or adjust the size by using the "right" slider in "Configure subplots" menu. You can click on the legend and drag it to some other location.
@@ -76,6 +84,7 @@ The following examples use the headphone measurment and target curves provided b
 4. Compensation according to reference curve is faster if reference curve and data curve contain the exact same frequencies. Otherwise interpolation of the reference curve data is used to compensate the data curves. In this case data which is not within the frequency range of the reference curve will not be displayed.
 5. PEQ shelf filter ignore the Q setting, shelf filters use a fixed Q=1/SQRT(2).
 6. Smoothing uses a Savitzky-Golay filter of given octave fraction length with 1th order polynomial. The algorithm is very different to e.g. the one used by [REW](https://www.roomeqwizard.com/help/help_en-GB/html/graph.html#top). Results are very similar but not identical to REW.
+7. When using a high impedance amplifier output (e.g. tube amplifier or often integrated amplifier headphone jack) in combination with an uneven headphone or loudspeaker impedance curve the effect on the frequency response can be calculated, if inner resistance of the amplifier ZS and impedance curve ZL (e.g. easily measured using [REW](https://www.roomeqwizard.com/help/help_en-GB/html/impedancemeasurement.html) are known. Power amplifier specifications often include the damping factor DF into some fixed ZL (often 8 Ohm). In this case the amplifier ZS can be calculated from DF : ZS=ZL/DF. The headphone jack of an integrated amplifier is often driven by the main amplifier via a fixed resistor, in this case this resistance needs to be added to calculate the source impedance ZS.)
   
 # References
 1. Jaakko Pasanen, AutoEq, https://github.com/jaakkopasanen/AutoEq, https://autoeq.app/

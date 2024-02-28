@@ -12,6 +12,9 @@ from scipy import interpolate
 from matplotlib.ticker import FuncFormatter
 from matplotlib.ticker import LogFormatter
 
+# No impedance EQ
+zeq = None
+
 # X-Axis minor ticks labels
 def myformatter(x, pos):
     if x == args.xmin:
@@ -49,6 +52,43 @@ def on_pick(event):
         ax_line.set_zorder(2)
         legend_line.set_alpha(1.0)
     fig.canvas.draw()
+
+def calcImpedanceCurve(filename, ax, resistance, csv_delimiter=','):
+    xz = []
+    yz = []
+    csvfile = open(filename, newline='')
+    c = csv.reader(csvfile, delimiter=csv_delimiter)
+    nrows = 0
+    zmin = 0
+    zmax = 0
+    for row in c:
+        try:
+            xf = float(row[0])
+            yf = float(row[1])
+            xz.append(xf)
+            yz.append(yf)
+            if nrows == 0:
+                zmin = yf
+                zmax = yf
+            if yf < zmin:
+                zmin = yf
+            if yf > zmax:
+                zmax = yf
+            nrows = nrows + 1
+        except ValueError as ve:
+            print( 'Ignoring: ', row, 'in ' , filename)
+    csvfile.close()
+
+    length = len(yz)
+    normalize = (resistance+zmin)/zmin
+    for i in range(length):
+        yz[i] = 20 * np.log10(yz[i]/(resistance+yz[i]) * normalize)
+    # Define Impedance EQ
+    zeq = interpolate.interp1d(xz, yz, fill_value='extrapolate', assume_sorted=True)
+    # show impedance EQ curve
+    (line, ) = ax.plot(xz, yz, '-', lw=1.5, label='EQ by impedance ('+ str(resistance) +' Ohm source)')
+    lines.append(line)
+    return zeq
 
 # Draw given CSV file frequency response
 def drawCurve(filename, ax, alignmin, alignmax, isref, csv_delimiter=',', xref = None, yref = None, biquads = None, hidepeq = True, smooth = -1, smoothstr = '', smootheonly = False):
@@ -155,14 +195,24 @@ def drawCurve(filename, ax, alignmin, alignmax, isref, csv_delimiter=',', xref =
             y_smoothed = np.flip(y_smoothed)
             y_smoothed = savgol_filter(y_smoothed, window_size, 1, mode='nearest')
             y_smoothed = np.flip(y_smoothed)
+        # Show smoothed curve
         (line, ) = ax.plot(x_smoothed, y_smoothed, '-', lw=1.5, label=os.path.basename(filename)+' ('+ smoothstr + ' oct smoothed)')
         lines.append(line)
+        if zeq != None:
+            yz = y_smoothed
+            length = len(y_smoothed)
+            for i in range(length):
+                yz[i] += zeq(x[i])
+            # Show impedance equalized smoothed curve
+            (line, ) = ax.plot(x_smoothed, yz, '-', lw=1.5, label=os.path.basename(filename)+' (Impedance equalized, ' + smoothstr + ' oct smoothed)')
+            lines.append(line)
         if biquads != None:
             # Apply biquad PEQ  to smoothed curve
             length = len(y_smoothed)
             for i in range(length):
                 for b in biquads:
                     y_smoothed[i] = y_smoothed[i] + b.log_result(x_smoothed[i])
+            # Show peq equalized smoothed curve
             (line, ) = ax.plot(x_smoothed, y_smoothed, '-', lw=1.5, label=os.path.basename(filename)+' (Equalized, ' + smoothstr + ' oct smoothed)')
             lines.append(line)
 
@@ -183,17 +233,29 @@ def drawCurve(filename, ax, alignmin, alignmax, isref, csv_delimiter=',', xref =
 
     # Draw graph
     if isref:
+        # Show reference curve
         (line, ) = ax.plot(x, y, '--k', lw=1.5, label=os.path.basename(filename))
         lines.append(line)
     else:
+        # Show curve
         (line, ) = ax.plot(x, y, '-', lw=1.5, label=os.path.basename(filename))
         lines.append(line)
+        if zeq != None:
+            yz = y
+            length = len(y)
+            for i in range(length):
+                yz[i] += zeq(x[i])
+            # Show impedance equalized curve
+            (line, ) = ax.plot(x, yz, '-', lw=1.5, label=os.path.basename(filename)+' (Impedance equalized)')
+            lines.append(line)
+
         if biquads != None:
             # Apply biquad PEQ
             length = len(y)
             for i in range(length):
                 for b in biquads:
                     y[i] = y[i] + b.log_result(x[i])
+            # Show peq equalized curve
             (line, ) = ax.plot(x, y, '-', lw=1.5, label=os.path.basename(filename)+' (Equalized)')
             lines.append(line)
 
@@ -205,8 +267,9 @@ FreqRespGraph can plot single or multiple frequency response graphs given as CSV
 X and Y Axis limit can be configured. Data can be aligned to 0dB at a given frequency or frequency range. In
 addition a reference curve can be specified. Filter settings for a parametric equalizer can be specified to
 additionally plot the equalizer response and curve(s) equalized by it. Curves can be smoothed by a given
-fraction of an octave using a Savitzky-Golay filter with second order polynom. The CSV data files needs to
-contain 2 rows with frequency and SPL.
+fraction of an octave using a Savitzky-Golay filter with first order polynom. The CSV data files needs to
+contain 2 rows with frequency and SPL. Additionally an impedance curve and amplifier inner resistance can
+be specified to calculate the effect on the frequency response.
 '''
 )
 parser.add_argument('--ymin', nargs='?', type=float, default='-30', help='Y-Axis minumum, default -30db')
@@ -225,6 +288,9 @@ parser.add_argument('--fpeq', nargs='?', type=float, default='48000', help='Samp
 parser.add_argument('--hidepeq', action='store_true', help='Hide equalizer curve')
 parser.add_argument('--smooth', nargs='?', default='-1', help='Smooth curves according to given fraction of an octave, e.g. 1/12, 0.5 or 1, default off')
 parser.add_argument('--smoothonly', action='store_true', help='Only show smoothed curves')
+parser.add_argument('--zeq_file', nargs='?', default='', help='CSV filename with impedance data to calculate EQ due to impedance change, requires zeq_r')
+parser.add_argument('--zeq_r', nargs='?', type=float, default='-1', help='Inner resistance of amplifier')
+parser.add_argument('--zeq_csvdelimiter', nargs='?', default=',', help='Delimiter character used in impedance data CSV file, default ","')
 parser.add_argument('--csvdelimiter', nargs='?', default=',', help='Delimiter character used in CSV files, default ","')
 parser.add_argument('--files', nargs='*',  required=True, help='CSV filenames to be plotted (supports filename wildcards)')
 args = parser.parse_args()
@@ -258,6 +324,7 @@ print (args )
 # Initialize layout
 fig, ax = plt.subplots(figsize = (9, 6))
 
+# No reference curve
 xref = None
 yref = None
 if args.refcurve != '' and args.compensate:
@@ -278,6 +345,9 @@ if args.refcurve != '' and args.compensate:
 
 # Draw curve for each given CSV
 lines = []
+if args.zeq_r > 0 and args.zeq_file != '' :
+    zeq = calcImpedanceCurve(args.zeq_file, ax, args.zeq_r, args.zeq_csvdelimiter)
+
 for filepattern in args.files:
     files = glob.glob(filepattern)
     for file in files:
@@ -309,7 +379,6 @@ ax.set_ylim(args.ymin,args.ymax)
 # Set X Axis major and minor ticks
 formatter = LogFormatter()
 ax.xaxis.set_major_formatter(formatter)
-#if args.xmin == 20 and args.xmax == 20000:
 formatter2 = FuncFormatter(myformatter)
 ax.xaxis.set_minor_formatter(formatter2)
 
